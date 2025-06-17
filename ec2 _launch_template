@@ -1,0 +1,34 @@
+#!/bin/bash
+# === Update System ===
+apt update && apt upgrade -y
+
+# === Install Base Packages ===
+apt install -y git python3 python3-pip python3-venv libgl1 libglib2.0-0 wget unzip curl software-properties-common
+
+# === Install NVIDIA Driver and Utilities for G5 A10G (Ubuntu 24.04) ===
+apt install -y nvidia-driver-535-server nvidia-utils-535-server
+
+# === Create ComfyUI Setup ===
+cd /home/ubuntu
+git clone https://github.com/comfyanonymous/ComfyUI.git
+cd ComfyUI
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# === Create startup script ===
+cat <<EOF > /home/ubuntu/start_comfy.sh
+#!/bin/bash
+cd /home/ubuntu/ComfyUI
+source venv/bin/activate
+python3 main.py --listen 0.0.0.0 --port 3000
+EOF
+
+chmod +x /home/ubuntu/start_comfy.sh
+
+# === Auto-start ComfyUI on every reboot ===
+(crontab -l 2>/dev/null; echo "@reboot /home/ubuntu/start_comfy.sh") | crontab -
+
+# === Start ComfyUI Now ===
+/home/ubuntu/start_comfy.sh &
