@@ -1,0 +1,205 @@
+ComfyUI EC2 Setup —  Documentation (in progress...)
+
+Overview
+
+This document captures the full environment, model structure, and requirements of a production-ready ComfyUI installation running on an AWS EC2 instance (e.g., g5.2xlarge). This includes:
+
+Installed models (checkpoints, LoRAs, VAE, upscalers, detectors)
+
+Directory structure
+
+External model downloads
+
+Runtime dependencies
+
+Node extensions used
+
+This ensures the setup is reproducible, backed up, and version-controlled.
+
+1. Environment Summary
+
+System: Ubuntu (on EC2 instance)
+VRAM: 22.5 GB (A10G GPU)
+Python: 3.12.3
+ComfyUI Version: 0.3.41-5-g5b12b55e
+Frontend Version: 1.22.2
+
+Run command:
+
+python main.py --listen 0.0.0.0 --port 3000
+
+2. Directory Structure & Model Paths
+
+ComfyUI/
+├── models/
+│   ├── checkpoints/
+│   │   ├── Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+│   │   ├── juggernautXL_inpaintingFP16.safetensors
+│   │   ├── dreamshaperXL_lightning_bakedvae_fp16.safetensors
+│   │   ├── sdxl_vae.safetensors
+│   │   └── ...
+│   ├── loras/
+│   │   ├── ip-adapter-faceid_sdxl_lora.safetensors
+│   │   ├── Super_Eye_Detailer_By_Stable_Yogi_SDPD0.safetensors
+│   │   └── ipadapter/
+│   │       └── ip-adapter-faceid-plusv2_sdxl_lora.safetensors
+│   ├── ultralytics/bbox/
+│   │   ├── Eyes.pt
+│   │   ├── eyesDetection_v10.zip
+│   │   ├── face_yolov8m.pt
+│   │   └── hand_yolov8s.pt
+│   └── upscale_models/
+│       ├── 4xFaceUpDAT.pth
+│       ├── 4xLSDIR.pth
+│       └── ...
+
+3. Required External Downloads
+
+ControlNet
+
+xinsir/ControlNet++ (ProMax model) → via ComfyUI Manager > Model Manager > ControlNet
+
+FaceID Models
+
+ip-adapter-faceid-plusv2_sdxl.bin  (Put in ComfyUI/models/ipadapter/)
+
+ip-adapter-faceid-plusv2_sdxl_lora.safetensors (Put in loras/ipadapter/)
+
+CLIP Vision:
+
+CLIP-ViT-H-14-laion2B-s32B-b79K
+
+CLIP-ViT-bigG-14-laion2B-39B-b160k
+
+Detectors (manual)
+
+Eyes Detection by aDetailer:
+
+https://civitai.com/models/150925
+
+Place in: models/ultralytics/bbox
+
+Loras
+
+Detailer by Stable Yogi:
+
+https://civitai.com/models/178167/detailersbystableyogi
+
+Place in: models/loras
+
+Checkpoints
+
+Juggernaut XL Inpainting FP16:
+
+https://civitai.com/models/575395?modelVersionId=1071060
+
+Place in: models/checkpoints
+
+Upscalers
+
+https://openmodeldb.info/models/4x-LSDIR
+
+https://openmodeldb.info/models/4x-FaceUpDAT
+
+Place in: models/upscale_models
+
+4. Installed Extensions (custom_nodes)
+
+Ensure these folders exist under ComfyUI/custom_nodes/:
+
+ComfyUI/custom_nodes/
+├── ComfyUI-Manager
+├── comfyui-impact-pack
+├── comfyui-impact-subpack
+├── ComfyUI_Comfyroll_CustomNodes
+├── ComfyUI_LayerStyle_Advance
+├── comfyui-mixlab-nodes
+├── was-node-suite-comfyui
+├── comfyui_ipadapter_plus
+├── comfyui-easy-use
+├── comfyui-get-meta
+├── comfyui_essentials
+├── comfyui-kjnodes
+├── rgthree-comfy
+├── cg-use-everywhere
+├── websocket_image_save.py
+
+Optional Dependencies
+
+If needed for full node loading:
+
+pip install ffmpeg imageio-ffmpeg wget blend_modes diffusers
+
+5. Python Environment (Installed Packages)
+
+Use requirements-comfy.txt (already in repo):
+
+pip install -r requirements-comfy.txt
+
+Notable entries:
+
+diffusers==0.27.2
+
+comfyui-frontend-package==1.22.2
+
+blend_modes==2.2.0
+
+wget==3.2
+
+timm==1.0.15
+
+ultralytics==8.3.156
+
+torch==2.7.1, torchvision==0.22.1, onnxruntime-gpu==1.22.0
+
+6. Backups & Workflow Files
+
+All your workflows should be saved under:
+
+ComfyUI/workflows/
+
+Ensure you version control this folder.
+
+7. Version Control Tips
+
+Recommended .gitignore for sensitive and large files:
+
+models/
+!models/upscale_models/4xFaceUpDAT.pth
+!models/upscale_models/4xLSDIR.pth
+!models/checkpoints/Juggernaut*.safetensors
+!models/loras/*.safetensors
+venv/
+*.pyc
+__pycache__/
+output/
+input/
+user/
+
+8. Launch Script
+
+You may create a launch script:
+
+#!/bin/bash
+source venv/bin/activate
+python main.py --listen 0.0.0.0 --port 3000
+
+Make it executable:
+
+chmod +x launch.sh
+
+9. Notes
+
+Keep venv/ updated with requirements-comfy.txt
+
+Restart ComfyUI after moving any models or adding extensions
+
+Use ComfyUI Manager > Model Manager to verify model integrity and availability
+
+10. Roadmap Ideas
+
+Automate model sync from S3 or Git LFS
+
+Use GitHub Actions for versioned documentation
+
+Snapshot EC2 AMI for rapid redeploy
